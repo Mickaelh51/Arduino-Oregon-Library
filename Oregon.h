@@ -200,8 +200,9 @@ float temperature(const byte* data)
 {
   int sign = (data[6]&0x8) ? -1 : 1;
   float temp = ((data[5]&0xF0) >> 4)*10 + (data[5]&0xF) + (float)(((data[4]&0xF0) >> 4) / 10.0);
+  float result = sign * temp;
   #ifdef MY_DEBUG
-    Serial.println("Oregon temperature: " + String(sign * temp));
+    Serial.println("Oregon temperature: " + String(result));
   #endif
   return sign * temp;
 }

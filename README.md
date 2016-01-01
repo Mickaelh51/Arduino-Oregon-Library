@@ -4,13 +4,13 @@
 - 433Mhz receiver (connected on digital pin 2)
 - Oregon sensors
 
-## Example without MySensors (www.mysensors.org):
+## Example without MySensors:
 Serial output:
 ```
 test
 ```
 
-## Example with MySensors library:
+## Example with MySensors library (www.mysensors.org):
 Serial output:
 ```
 test
