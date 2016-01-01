@@ -1,6 +1,6 @@
 {
   "name": "Oregon",
-  "keywords": "Oregon, 433Mhz, temperature, humidity, battery, THN132N, THGR228N",
+  "keywords": "Oregon, 433Mhz, temperature, humidity, battery, THN132N, THGR228N, MySensors",
   "description": "This sketch provides an example how to implement a humidity/temperature from Oregon sensor.",
   "repository":
   {
