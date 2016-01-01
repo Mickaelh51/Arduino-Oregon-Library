@@ -306,11 +306,19 @@ int FindSensor (const int id, int maxsensor)
 {
   int i;
   for (i=0; i<maxsensor; i++){
-    int SensorID = loadState(i);
-
+    #ifdef MySensor_h
+      int SensorID = loadState(i);
+    #else
+      int SensorID = EEPROM.read(i);
+    #endif
     if(SensorID == 255)
     {
-      saveState(i,id);
+      #ifdef MySensor_h
+        saveState(i,id);
+      #else
+        EEPROM.write(i,id);
+      #endif
+
       #ifdef MY_DEBUG
         Serial.print("Sensor id: ");
         Serial.print(SensorID);
