@@ -29,6 +29,13 @@
 #include <SPI.h>
 #include <EEPROM.h>
 #include <Oregon.h>
+#include <OregonDecoderV1.h>
+#include <OregonDecoderV2.h>
+#include <OregonDecoderV3.h>
+
+OregonDecoderV1 orscV1;
+OregonDecoderV2 orscV2;
+OregonDecoderV3 orscV3;
 
 //Define pin where is 433Mhz receiver (here, pin 2)
 #define MHZ_RECEIVER_PIN 2
@@ -55,12 +62,21 @@ void loop () {
     word p = pulse;
     pulse = 0;
     sei();
+    const byte* DataDecoded;
     if (p != 0)
     {
-        if (orscV2.nextPulse(p))
-        {
+        if (orscV1.nextPulse(p))
             //Decode Hex Data once
-            const byte* DataDecoded = DataToDecoder(orscV2);
+            DataDecoded = DataToDecoder(orscV1);
+        if (orscV2.nextPulse(p))
+            //Decode Hex Data once
+            DataDecoded = DataToDecoder(orscV2);
+        if (orscV3.nextPulse(p))
+            //Decode Hex Data once
+            DataDecoded = DataToDecoder(orscV3);
+
+        if(DataDecoded)
+        {
             //Find or save Oregon sensors's ID
             int SensorID = FindSensor(id(DataDecoded),COUNT_OREGON_SENSORS);
 

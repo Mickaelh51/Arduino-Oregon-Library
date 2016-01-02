@@ -4,9 +4,21 @@
 // New code to decode OOK signals from weather sensors, etc.
 // 2010-04-11 Jean-Claude Wippler <jcw@equi4.com>
 
-class OregonDecoderV1 : public DecodeOOK {
+class OregonDecoderV3 : public DecodeOOK {
 public:
-    OregonDecoderV1() {}
+    OregonDecoderV3() {}
+
+    // add one bit to the packet data buffer
+    virtual void gotBit (char value) {
+        data[pos] = (data[pos] >> 1) | (value ? 0x80 : 00);
+        total_bits++;
+        pos = total_bits >> 3;
+        if (pos >= sizeof data) {
+            resetDecoder();
+            return;
+        }
+        state = OK;
+    }
 
     virtual char decode (word width) {
         if (200 <= width && width < 1200) {
@@ -15,7 +27,7 @@ public:
                 case UNKNOWN:
                     if (w == 0)
                         ++flip;
-                    else if (10 <= flip && flip <= 50) {
+                    else if (32 <= flip) {
                         flip = 1;
                         manchester(1);
                     } else
@@ -34,10 +46,9 @@ public:
                         return -1;
                     break;
             }
-            return 0;
+        } else {
+            return -1;
         }
-        if (width >= 2500 && pos >= 9)
-            return 1;
-        return -1;
+        return  total_bits == 80 ? 1: 0;
     }
 };
