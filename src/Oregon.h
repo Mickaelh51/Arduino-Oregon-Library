@@ -215,7 +215,6 @@ const char* OregonType (const byte* data)
 }
 
 // Decode data once
-//const byte* DataToDecoder (const class DecodeOOK& decoder)
 const byte* DataToDecoder (class DecodeOOK& decoder)
 {
     byte pos;
@@ -268,6 +267,22 @@ int FindSensor (const int id, int maxsensor)
       return i;
     }
   }
+}
+
+bool isChecksumOK(class DecodeOOK& decoder) {
+  int cs = 0;
+  byte pos;
+  const byte* data = decoder.getData(pos);
+
+  for (byte i = 0; i < pos-2; ++i) {
+      //all but last byte
+      cs += data[i] >> 4;
+      cs += data[i] & 0x0F;
+   }
+   cs -= 10;
+
+   int csc = ((data[8] >> 4)*16) + (data[8] & 0x0F);
+   return cs == csc;
 }
 
 #endif

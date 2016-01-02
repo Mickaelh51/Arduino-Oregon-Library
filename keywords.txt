@@ -8,7 +8,9 @@
 #######################################
 
 DecodeOOK	KEYWORD1
-OregonDecoderV2	KEYWORD1
+OregonDecoderV1	KEYWORD1
+OregonDecoderV2 KEYWORD1
+OregonDecoderV3 KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)

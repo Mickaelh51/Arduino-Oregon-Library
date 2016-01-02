@@ -66,14 +66,14 @@ void loop () {
     if (p != 0)
     {
         if (orscV1.nextPulse(p))
-            //Decode Hex Data once
-            DataDecoded = DataToDecoder(orscV1);
+            //Decode version 1 hexadecimal data
+            if(isChecksumOK(orscV1)) { DataDecoded = DataToDecoder(orscV1); }
         if (orscV2.nextPulse(p))
-            //Decode Hex Data once
-            DataDecoded = DataToDecoder(orscV2);
+            //Decode version 2 hexadecimal data
+            if(isChecksumOK(orscV2)) { DataDecoded = DataToDecoder(orscV2); }
         if (orscV3.nextPulse(p))
-            //Decode Hex Data once
-            DataDecoded = DataToDecoder(orscV3);
+            //Decode version 3 hexadecimal data
+            if(isChecksumOK(orscV3)) { DataDecoded = DataToDecoder(orscV3); }
 
         if(DataDecoded)
         {
