@@ -232,7 +232,8 @@ byte battery(const byte* data)
 byte id(const byte* data)
 {
   #ifdef MY_DEBUG
-    Serial.println("Oregon ID: " + String(data[3]) + " Hexadecimal: " + (data[3],HEX));
+    Serial.print("Oregon ID: " + String(data[3]) + " Hexadecimal: ");
+    Serial.println(data[3],HEX);
   #endif
   return (data[3]);
 }
@@ -265,17 +266,14 @@ const char* OregonType (const byte* data)
     const char* Model;
     if(data[0] == 0xEA && data[1] == 0x4C)
     {
-        //return ("THN132N");
         Model = "THN132N";
     }
     else if(data[0] == 0x1A && data[1] == 0x2D)
     {
-        //return ("THGR228N");
 	       Model = "THGR228N";
     }
     else
     {
-	     //return ("UNKNOWN");
 	      Model = "UNKNOWN";
     }
     #ifdef MY_DEBUG
@@ -286,7 +284,6 @@ const char* OregonType (const byte* data)
 }
 
 // Decode data once
-//const byte* DataToDecoder (const class DecodeOOK& decoder)
 const byte* DataToDecoder (class DecodeOOK& decoder)
 {
     byte pos;
@@ -321,7 +318,7 @@ int FindSensor (const int id, int maxsensor)
       #endif
 
       #ifdef MY_DEBUG
-        Serial.print("Sensor id: ");
+        Serial.print("Sensor ID: ");
         Serial.print(SensorID);
         Serial.print(" has been saved in position EEPROM: ");
         Serial.println(i);
@@ -331,7 +328,7 @@ int FindSensor (const int id, int maxsensor)
 
     if(id == SensorID){
       #ifdef MY_DEBUG
-        Serial.print("Sensor id: ");
+        Serial.print("Sensor ID: ");
         Serial.print(SensorID);
         Serial.print(" has been find in position EEPROM: ");
         Serial.println(i);
