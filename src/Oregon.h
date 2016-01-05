@@ -357,4 +357,322 @@ void ResetEEPROM(int maxsensor)
   #endif
 }
 
+/*
+// OWL Electricty Meter
+  if (data[0] == 0x06 && data[1] == 0xC8) {
+    //Serial.print("Current ");
+    PowerNow = (data[3] + ((data[4] & 0x03)*256));
+    //Serial.print(float(PowerNow)/10,1);
+    //Serial.println("amps");
+    int Duration = now.unixtime()-PreviousTime;
+    float ActualPower = Duration * ((PowerNow * 240 * PF)/36000.0);
+    if (ActualPower < 0) ActualPower = -ActualPower;
+    if (ActualPower > 0) {
+      TotalPowerHr += ActualPower; //W/s
+      TotalPower24 += ActualPower; //W/s
+      YearData.TotalPowerY += ActualPower;
+      PreviousTime = now.unixtime();
+      PowerTime = now.unixtime();
+      //Serial.print("Added... ");
+      //Serial.print(ActualPower);
+      //Serial.print("W (over ");
+    }
+    //Serial.print(Duration);
+    //Serial.print(" seconds). Total Today ");
+    //Serial.print(TotalPower24,0);
+    //Serial.println("W/hs ");
+    //Check Extremes
+    if (PowerNow > MaxPower24 && PowerNow != -999) {
+      MaxPower24 = PowerNow;
+    }
+  }
+
+  // WGR918 Annometer
+  if (data[0] == 0x3A && data[1] == 0x0D) {
+    //Checksum - add all nibbles from 0 to 8, subtract A and compare to byte 9, should = 0
+    int cs = 0;
+    for (byte i = 0; i < pos-1; ++i) { //all but last byte
+        cs += data[i] >> 4;
+        cs += data[i] & 0x0F;
+    }
+    int csc = ((data[9] >> 4)*16) + (data[9] & 0x0F);
+    cs -= 10;
+    //Serial.print(csc);
+    //Serial.print(" vs ");
+    //Serial.println(cs);
+    if (cs == csc){ //if checksum is OK
+      //Serial.print("Direction ");
+      DirectionNow = ((data[5]>>4) * 100)  + ((data[5] & 0x0F) * 10) + (data[4] >> 4);
+      //Serial.print(DirectionNow);
+      //Serial.print(" degrees  Current Speed (Gust) ");
+      GustNow = ((data[7] & 0x0F) * 100)  + ((data[6]>>4) * 10)  + ((data[6] & 0x0F)) ;
+      //Serial.print(float(GustNow)/10,1);
+      //Serial.print("m/s  Average Speed ");
+      AverageNow = ((data[8]>>4) * 100)  + ((data[8] & 0x0F) * 10)+((data[7] >>4)) ;
+      //Serial.print(float(AverageNow)/10,1);
+      //Serial.print("m/s  Battery ");
+      WindBat=(10-(data[4] & 0x0F))*10;
+      //Serial.print(WindBat);
+      //Serial.println("%");
+      // Check Extremes
+      WindTime = now.unixtime();
+      if (GustNow > MaxGust24 && GustNow != -999) {
+        MaxGust24 = GustNow;
+        Direction24 = DirectionNow;
+        //Serial.print("MaxGust today ");
+        //Serial.println(MaxGust24);
+      }
+      if (MaxGust24 > YearData.MaxGustY && GustNow != -999) {
+        YearData.MaxGustY = MaxGust24;
+        YearData.DirectionY = Direction24;
+        YearData.WindYD = now.unixtime();
+        //Serial.print("MaxGust this Year ");
+        //Serial.println(YearData.MaxGustY);
+      }
+      // Check Triggers
+      if ((float(AverageNow)/10)*2.2369362920544025 > WindTrigger && WindTriggerFlag == false){
+        WindTriggerFlag = true; //stops multiple emails for same excursion
+        WindTriggerTime=now.unixtime() + 7200; //2 hours
+        SendEmail(1);
+      }
+      if (((float(AverageNow)/10)*2.2369362920544025 < WindTrigger) && (now.unixtime() > WindTriggerTime )){
+        WindTriggerFlag = false;
+      }
+    }
+  }
+
+  //RGR918 Rain Guage
+  if (data[0] == 0x2A && data[1] == 0x1D) {
+    //Checksum - add all nibbles from 0 to 8, subtract 9 and compare, should = 0
+    //Serial.print(" - ");
+    int cs = 0;
+    for (byte i = 0; i < pos-2; ++i) { //all but last byte
+        cs += data[i] >> 4;
+        cs += data[i] & 0x0F;
+    }
+    int csc = (data[8] >> 4) + ((data[9] & 0x0F)*16);
+    cs -= 9;  //my version as A fails?
+    //Serial.print(csc);
+    //Serial.print(" vs ");
+    //Serial.println(cs);
+    if (cs == csc){ //if checksum is OK
+      //Serial.print("Rain ");
+      RainRateNow = ((data[5]>>4) * 100)  + ((data[5] & 0x0F) * 10) + (data[4] >> 4);
+      //Serial.print(RainRateNow);
+      //Serial.print("mm/hr  Total ");
+      int RainTotal = ((data[7]  >> 4) * 10)  + (data[6]>>4);
+      RainTime = now.unixtime();
+      if (RainTotal != OldRainTotal){
+        if (RainNewFlag == false){  //Stops 1st reading going through and giving additonal values
+          TotalRainFrom0000 += 1;
+          TotalRainHour += 1;
+          YearData.TotalRainY += 1;
+          SendEmail(2);
+        }
+        OldRainTotal=RainTotal;
+        RainNewFlag=false;
+      }
+      //Serial.print(TotalRainFrom0000);
+      //Serial.print(" ");
+      //Serial.print(RainTotal);
+      //Serial.print(" ");
+      //Serial.print(OldRainTotal);
+      //Serial.print("mm  Battery ");
+      if ((data[4] & 0x0F) >= 4){
+        RainBat=0;
+        //Serial.println("Low");
+      }
+      else
+      {
+        RainBat=100;
+        //Serial.println("OK");
+      }
+    }
+  }
+
+  //UV138
+  if (data[0] == 0xEA && data[1] == 0x7C) {
+    //Serial.print("UV ");
+    UVNow = ((data[5] & 0x0F) * 10)  + (data[4] >> 4);
+    UVTime = now.unixtime();
+    //Serial.print(UVNow);
+    //Serial.print("  Battery ");
+    if ((data[4] & 0x0F) >= 4){
+      UVBat=0;
+      //Serial.println("Low");
+    }
+    else
+    {
+      UVBat=100;
+      //Serial.println("OK");
+    }
+    //Check Extremes
+    if (UVNow > MaxUV24 && UVNow != -999) {
+      MaxUV24 = UVNow;
+    }
+  }
+
+  //THGR228N Inside Temp-Hygro
+  if (data[0] == 0x1A && data[1] == 0x2D) {
+    int battery=0;
+    int celsius= ((data[5]>>4) * 100)  + ((data[5] & 0x0F) * 10) + ((data[4] >> 4));
+    if ((data[6] & 0x0F) >= 8) celsius=-celsius;
+    int hum = ((data[7] & 0x0F)*10)+ (data[6] >> 4);
+    if ((data[4] & 0x0F) >= 4){
+      battery=0;
+    }
+    else
+    {
+      battery=100;
+    }
+    //Serial.print("Additional Channel ");
+    switch (data[2]) {
+    case 0x10:
+      CH1TempNow=celsius;
+      CH1HumNow=hum;
+      CH1Bat=battery;
+      CH1Time = now.unixtime();
+      //Serial.print("1  ");
+      break;
+    case 0x20:
+      CH2TempNow=celsius;
+      CH2HumNow=hum;
+      CH2Bat=battery;
+      CH2Time = now.unixtime();
+      //Serial.print("2  ");
+      break;
+    case 0x40:
+      CH3TempNow=celsius;
+      CH3HumNow=hum;
+      CH3Bat=battery;
+      CH3Time = now.unixtime();
+      //Serial.print("3  ");
+      break;
+    }
+    //Serial.print(float(celsius)/10,1);
+    //Serial.print("C  Humidity ");
+    //Serial.print(hum);
+    //Serial.print("%  Battery ");
+    //Serial.print(battery);
+    //Serial.println("%");
+  }
+
+  //THGR918  Outside Temp-Hygro
+  if (data[0] == 0x1A && data[1] == 0x3D) {
+    //Checksum - add all nibbles from 0 to 8, subtract 9 and compare, should = 0
+    //Serial.print(" - ");
+    int cs = 0;
+    for (byte i = 0; i < pos-2; ++i) { //all but last byte
+      cs += data[i] >> 4;
+      cs += data[i] & 0x0F;
+    }
+    int csc = ((data[8] >> 4)*16) + (data[8] & 0x0F);
+    cs -= 10;
+    //Serial.print(csc);
+    //Serial.print(" vs ");
+    //Serial.println(cs);
+    if (cs == csc){ //if checksum is OK
+      //Serial.print("Outdoor temperature ");
+      OutTempNow= ((data[5]>>4) * 100)  + ((data[5] & 0x0F) * 10) + ((data[4] >> 4));
+      if ((data[6] & 0x0F) >= 8) OutTempNow=-OutTempNow;
+      //Serial.print(float(OutTempNow)/10,1);
+      //Serial.print("C  Humidity ");
+      OutHumNow = ((data[7] & 0x0F)*10)+ (data[4] >> 4);
+      //Serial.print(OutHumNow);
+      //Serial.print("%  Battery ");
+      OutTempBat=(10-(data[4] & 0x0F))*10;
+      //Serial.print(OutTempBat);
+      //Serial.println("%");
+      OutTime = now.unixtime();
+      //Check Extremes
+      if (OutTempNow > MaxTemp24 && OutTempNow != -999) {
+        MaxTemp24 = OutTempNow;
+      }
+      if (OutTempNow < MinTemp24 && OutTempNow != -999) {
+        MinTemp24 = OutTempNow;
+      }
+      if (MaxTemp24 > YearData.MaxTempY && OutTempNow != -999) {
+        YearData.MaxTempY = MaxTemp24;
+        YearData.MaxTempYD = now.unixtime();
+      }
+      if (MinTemp24 < YearData.MinTempY && OutTempNow != -999) {
+        YearData.MinTempY = MinTemp24;
+        YearData.MinTempYD = now.unixtime();
+      }
+      // Check Triggers
+      if (OutTempNow > TempTriggerMax && TempTriggerMaxFlag == false){
+        TempTriggerMaxFlag = true; //stops multiple emails for same excursion
+        TempTriggerTime=now.unixtime() + 7200; //2 hours
+        SendEmail(3);
+      }
+      if ((OutTempNow < TempTriggerMax) && (now.unixtime() > TempTriggerTime)){
+        TempTriggerMaxFlag = false;
+      }
+      if (OutTempNow < TempTriggerMin && TempTriggerMinFlag == false){
+        TempTriggerMinFlag = true; //stops multiple emails for same excursion
+        TempTriggerTime=now.unixtime() + 7200;  //2 hours
+        SendEmail(4);
+      }
+      if ((OutTempNow > TempTriggerMin)&& (now.unixtime() > TempTriggerTime)){
+        TempTriggerMinFlag = false;
+      }
+    }
+  }
+
+
+  //BTHR918 Temp-Hygro-Baro
+  if (data[0] == 0x5A && data[1] == 0x6D) {
+    //Serial.print("Indoor temperature ");
+    InTempNow= ((data[5]>>4) * 100)  + ((data[5] & 0x0F) * 10) + ((data[4] >> 4));
+    if ((data[6] & 0x0F) >= 8) InTempNow=-InTempNow;
+    //Serial.print(float(InTempNow)/10,1);
+    //Serial.print("C  Humidity ");
+    InHumNow = ((data[7] & 0x0F)*10)+ (data[6] >> 4);
+    //Serial.print(InHumNow);
+    //Serial.print("%  Pressure ");
+    BarrometerNow = (data[8])+856;
+    //Serial.print(BarrometerNow);
+    //Serial.print("hPa  ");
+    switch (data[7] & 0xC0) {
+    case 0x00:
+      Comfort="Normal";
+      break;
+    case 0x40:
+      Comfort="Comfortable";
+      break;
+    case 0x80:
+      Comfort="Dry";
+      break;
+    case 0xC0:
+      Comfort="Wet";
+      break;
+    }
+    //Serial.print(Comfort);
+    //Serial.print("  ");
+    switch (data[9] >> 4) {
+    case 0x0C:
+      Forecast="Sunny";
+      break;
+    case 0x06:
+      Forecast="Partly Cloudy";
+      break;
+    case 0x02:
+      Forecast="Cloudy";
+      break;
+    case 0x03:
+      Forecast="Wet";
+      break;
+    }
+    InTime = now.unixtime();
+    //Serial.print(Forecast);
+    //Serial.print("  Battery ");
+    InTempBat=(10-(data[4] & 0x0F))*10;
+    //Serial.print(InTempBat);
+    //Serial.println("%");
+  }
+
+
+
+*/
+
 #endif
