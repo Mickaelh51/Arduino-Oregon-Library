@@ -181,6 +181,9 @@ byte channel(const byte* data)
         case 0x40:
             channel = 3;
             break;
+        default:
+            channel = 0;
+            break;
      }
      #ifdef MY_DEBUG
        Serial.println("Oregon channel: " + String(channel));
@@ -194,17 +197,14 @@ const char* OregonType (const byte* data)
     const char* Model;
     if(data[0] == 0xEA && data[1] == 0x4C)
     {
-        //return ("THN132N");
         Model = "THN132N";
     }
     else if(data[0] == 0x1A && data[1] == 0x2D)
     {
-        //return ("THGR228N");
 	       Model = "THGR228N";
     }
     else
     {
-	     //return ("UNKNOWN");
 	      Model = "UNKNOWN";
     }
     #ifdef MY_DEBUG
@@ -234,13 +234,14 @@ const byte* DataToDecoder (class DecodeOOK& decoder)
 int FindSensor (const int id, int maxsensor)
 {
   int i;
+  bool find = false;
   for (i=0; i<maxsensor; i++){
     #ifdef MySensor_h
       int SensorID = loadState(i);
     #else
       int SensorID = EEPROM.read(i);
     #endif
-    if(SensorID == 255)
+    /*if(SensorID == 255)
     {
       #ifdef MySensor_h
         saveState(i,id);
@@ -250,23 +251,78 @@ int FindSensor (const int id, int maxsensor)
 
       #ifdef MY_DEBUG
         Serial.print("Sensor id: ");
-        Serial.print(SensorID);
+        Serial.print(id);
         Serial.print(" has been saved in position EEPROM: ");
         Serial.println(i);
       #endif
       return i;
-    }
+    }*/
 
-    if(id == SensorID){
+    if(id == SensorID)
+    {
       #ifdef MY_DEBUG
         Serial.print("Sensor id: ");
         Serial.print(SensorID);
         Serial.print(" has been find in position EEPROM: ");
         Serial.println(i);
       #endif
+      find = true;
       return i;
     }
   }
+
+    #ifdef MY_DEBUG
+      Serial.print("I don't find ID to sensor ID: ");
+      Serial.print(id);
+      Serial.print(".");
+      Serial.println("== Please check your configuration or active learning mode to add a new sensor ==");
+    #endif
+    return 256;
+}
+
+void SaveSensors (const int id, int maxsensor)
+{
+  #if LEARNING_MODE == true
+    int y;
+    int idfree;
+    bool find = false;
+
+    for (y=0; i<maxsensor; y++)
+    {
+      #ifdef MySensor_h
+        int idfree = loadState(i);
+      #else
+        int idfree = EEPROM.read(i);
+      #endif
+
+      if(idfree == 255)
+      {
+        #ifdef MySensor_h
+          saveState(i,id);
+        #else
+          EEPROM.write(i,id);
+        #endif
+
+        #ifdef MY_DEBUG
+          Serial.print("Sensor id: ");
+          Serial.print(id);
+          Serial.print(" has been saved in position EEPROM: ");
+          Serial.println(i);
+        #endif
+        find = true;
+      }
+    }
+
+    if(find == false)
+    {
+      Serial.print("You have too much sensors (COUNT_OREGON_SENSORS = ");
+      Serial.print(maxsensor);
+      Serial.print(", I can't save ID: ");
+      Serial.print(id);
+      Serial.println(" in EEPROM");
+    }
+  #endif
+  return;
 }
 
 bool isChecksumOK(class DecodeOOK& decoder) {
@@ -283,6 +339,22 @@ bool isChecksumOK(class DecodeOOK& decoder) {
 
    int csc = ((data[8] >> 4)*16) + (data[8] & 0x0F);
    return cs == csc;
+}
+
+void ResetEEPROM(int maxsensor)
+{
+  #if ERASE_REGISTERED_SENSORS == true
+    Serial.println("Started clearing. Please wait...");
+    for (int i=0;i<maxsensor;i++)
+    {
+      #ifdef MySensor_h
+        saveState(i,0xff);
+      #else
+        EEPROM.write(i,0xff);
+      #endif
+    }
+    Serial.println("Clering done. You're ready to go!");
+  #endif
 }
 
 #endif

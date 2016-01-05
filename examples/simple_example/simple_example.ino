@@ -41,11 +41,17 @@ OregonDecoderV3 orscV3;
 #define MHZ_RECEIVER_PIN 2
 //Define maximum Oregon sensors (here, 3 differents sensors)
 #define COUNT_OREGON_SENSORS 3
+//Active learning mode when you want add new sensor
+#define LEARNING_MODE false
+//Active erase mode when you want to delete Oregon's IDs
+#define ERASE_REGISTERED_SENSORS false
 
 void setup ()
 {
-
   Serial.println("Setup started");
+
+  //if ERASE_REGISTERED_SENSORS is true, we erase sensor data in EEPROM (write 0xff)
+  ResetEEPROM(COUNT_OREGON_SENSORS);
 
   //Setup received data
   attachInterrupt(digitalPinToInterrupt(MHZ_RECEIVER_PIN), ext_int_1, CHANGE);
@@ -77,15 +83,20 @@ void loop () {
 
         if(DataDecoded)
         {
+            //Active learning mode to save news sensors in EEPROM
+            SaveSensors(id(DataDecoded),COUNT_OREGON_SENSORS);
             //Find or save Oregon sensors's ID
             int SensorID = FindSensor(id(DataDecoded),COUNT_OREGON_SENSORS);
 
-            // just for DEBUG
-            OregonType(DataDecoded);
-            channel(DataDecoded);
-            temperature(DataDecoded);
-            humidity(DataDecoded);
-            battery(DataDecoded);
+            if(SensorID < 255)
+            {
+              // just for DEBUG
+              OregonType(DataDecoded);
+              channel(DataDecoded);
+              temperature(DataDecoded);
+              humidity(DataDecoded);
+              battery(DataDecoded);
+            }
         }
 
     }
