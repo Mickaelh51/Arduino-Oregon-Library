@@ -67,6 +67,10 @@ OregonDecoderV3 orscV3;
 #define MHZ_RECEIVER_PIN 2
 //Define maximum Oregon sensors (here, 3 differents sensors)
 #define COUNT_OREGON_SENSORS 3
+//Active learning mode when you want add new sensor
+#define LEARNING_MODE false
+//Active erase mode when you want to delete Oregon's IDs
+#define ERASE_REGISTERED_SENSORS false
 
 #define CHILD_ID_HUM 0
 #define CHILD_ID_TEMP 1
@@ -80,6 +84,9 @@ void setup ()
 {
 
   Serial.println("Setup started");
+
+  //if ERASE_REGISTERED_SENSORS is true, we erase sensor data in EEPROM (write 0xff)
+  ResetEEPROM(COUNT_OREGON_SENSORS);
 
   //Setup received data
   attachInterrupt(digitalPinToInterrupt(MHZ_RECEIVER_PIN), ext_int_1, CHANGE);
@@ -110,24 +117,31 @@ void loop () {
     word p = pulse;
     pulse = 0;
     sei();
-    const byte* DataDecoded;
+    const byte* DataDecoded = NULL;
     if (p != 0)
     {
+        //Serial.println("ici");
         if (orscV1.nextPulse(p))
             //Decode version 1 hexadecimal data
-            if(isChecksumOK(orscV1)) { DataDecoded = DataToDecoder(orscV1); }
+            if(isChecksumOK(orscV1)) { DataDecoded = DataToDecoder("V1",orscV1); }
+
         if (orscV2.nextPulse(p))
             //Decode version 2 hexadecimal data
-            if(isChecksumOK(orscV2)) { DataDecoded = DataToDecoder(orscV2); }
+            if(isChecksumOK(orscV2)) { DataDecoded = DataToDecoder("V2",orscV2); }
+
         if (orscV3.nextPulse(p))
             //Decode version 3 hexadecimal data
-            if(isChecksumOK(orscV3)) { DataDecoded = DataToDecoder(orscV3); }
+            if(isChecksumOK(orscV3)) { DataDecoded = DataToDecoder("V3",orscV3); }
 
         if(DataDecoded)
         {
+            //Active learning mode to save news sensors in EEPROM
+            SaveSensors(id(DataDecoded),COUNT_OREGON_SENSORS);
+
             //Find or save Oregon sensors's ID
             int SensorID = FindSensor(id(DataDecoded),COUNT_OREGON_SENSORS);
 
+            if(SensorID < 255)
             // just for DEBUG
             OregonType(DataDecoded);
             channel(DataDecoded);

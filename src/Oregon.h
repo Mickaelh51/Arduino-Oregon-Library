@@ -215,12 +215,14 @@ const char* OregonType (const byte* data)
 }
 
 // Decode data once
-const byte* DataToDecoder (class DecodeOOK& decoder)
+const byte* DataToDecoder (const char* version, class DecodeOOK& decoder)
 {
     byte pos;
     const byte* data = decoder.getData(pos);
     #ifdef MY_DEBUG
-      Serial.println("Brute Hexadecimal data from sensor: ");
+      Serial.print("Brute Hexadecimal data from sensor (Version: ");
+      Serial.print(version);
+      Serial.println(")");
       for (byte i = 0; i < pos; ++i) {
         Serial.print(data[i] >> 4, HEX);
         Serial.print(data[i] & 0x0F, HEX);
@@ -274,7 +276,7 @@ int FindSensor (const int id, int maxsensor)
     #ifdef MY_DEBUG
       Serial.print("I don't find ID to sensor ID: ");
       Serial.print(id);
-      Serial.print(".");
+      Serial.println(".");
       Serial.println("== Please check your configuration or active learning mode to add a new sensor ==");
     #endif
     return 256;
